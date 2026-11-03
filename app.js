@@ -2,6 +2,62 @@
 const $=id=>document.getElementById(id);
 const key='venue-booking-demo-v1';
 const rooms=['大堂','接待室','喜樂廳'];
+// Official DGPA calendars: 2026 / 2027. Observed holidays follow government-office dates.
+// Sources: https://www.dgpa.gov.tw/information?pid=12685&uid=30
+// https://www.dgpa.gov.tw/information?pid=12983&uid=2
+const taiwanHolidays={
+  "2026": {
+    "01-01": "元旦",
+    "02-15": "小年夜",
+    "02-16": "除夕",
+    "02-17": "春節初一",
+    "02-18": "春節初二",
+    "02-19": "春節初三",
+    "02-20": "小年夜補假",
+    "02-27": "和平紀念日補假",
+    "02-28": "和平紀念日",
+    "04-03": "兒童節補假",
+    "04-04": "兒童節",
+    "04-05": "清明節",
+    "04-06": "清明節補假",
+    "05-01": "勞動節",
+    "06-19": "端午節",
+    "09-25": "中秋節",
+    "09-28": "教師節",
+    "10-09": "國慶日補假",
+    "10-10": "國慶日",
+    "10-25": "臺灣光復暨金門古寧頭大捷紀念日",
+    "10-26": "臺灣光復暨金門古寧頭大捷紀念日補假",
+    "12-25": "行憲紀念日"
+  },
+  "2027": {
+    "01-01": "元旦",
+    "02-04": "小年夜",
+    "02-05": "除夕",
+    "02-06": "春節初一",
+    "02-07": "春節初二",
+    "02-08": "春節初三",
+    "02-09": "春節補假",
+    "02-10": "春節補假",
+    "02-28": "和平紀念日",
+    "03-01": "和平紀念日補假",
+    "04-04": "兒童節",
+    "04-05": "清明節",
+    "04-06": "兒童節補假",
+    "04-30": "勞動節補假",
+    "05-01": "勞動節",
+    "06-09": "端午節",
+    "09-15": "中秋節",
+    "09-28": "教師節",
+    "10-10": "國慶日",
+    "10-11": "國慶日補假",
+    "10-25": "臺灣光復暨金門古寧頭大捷紀念日",
+    "12-24": "行憲紀念日補假",
+    "12-25": "行憲紀念日",
+    "12-31": "2028年元旦補假"
+  }
+};
+function holidayFor(date){return taiwanHolidays[date.slice(0,4)]?.[date.slice(5)]||'';}
 let records=[];
 try{const saved=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(saved)) records=saved.filter(r=>r&&typeof r.id==='string'&&rooms.includes(r.room)&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&/^\d{2}:\d{2}$/.test(r.start)&&/^\d{2}:\d{2}$/.test(r.end)&&typeof r.purpose==='string');}catch{$('message').textContent='無法讀取本機紀錄，請確認瀏覽器允許儲存。';}
 const today=new Date();const localDate=[today.getFullYear(),String(today.getMonth()+1).padStart(2,'0'),String(today.getDate()).padStart(2,'0')].join('-');
@@ -16,16 +72,20 @@ function dateKey(y,m,d){return [y,String(m+1).padStart(2,'0'),String(d).padStart
 function renderCalendar(){
   const y=visibleMonth.getFullYear(),m=visibleMonth.getMonth();
   $('month-title').textContent=y+'年 '+(m+1)+'月';
-  $('selected-date').textContent=selectedDate+' 登記明細';
+  const selectedHoliday=holidayFor(selectedDate);
+  $('selected-date').textContent=selectedDate+(selectedHoliday?' · '+selectedHoliday:'')+' 登記明細';
+  $('holiday-status').textContent=taiwanHolidays[y]?'紅字：台灣國定假日及補假（依政府行政機關日曆）。':'此年度假日尚未收錄，未標紅不代表沒有國定假日。';
   const grid=$('calendar');grid.replaceChildren();
   const offset=new Date(y,m,1).getDay(),count=new Date(y,m+1,0).getDate();
   for(let i=0;i<offset;i++){const blank=document.createElement('div');blank.setAttribute('aria-hidden','true');grid.append(blank);}
   for(let day=1;day<=count;day++){
     const date=dateKey(y,m,day),items=records.filter(r=>r.date===date).sort((a,b)=>a.start.localeCompare(b.start));
-    const cell=document.createElement('button');cell.type='button';cell.className='calendar-day'+(date===localDate?' today':'')+(date===selectedDate?' active':'');
-    cell.setAttribute('aria-label',date+'，'+items.length+'筆登記');cell.setAttribute('aria-pressed',String(date===selectedDate));
+    const holiday=holidayFor(date);
+    const cell=document.createElement('button');cell.type='button';cell.className='calendar-day'+(holiday?' holiday':'')+(date===localDate?' today':'')+(date===selectedDate?' active':'');
+    cell.setAttribute('aria-label',date+(holiday?'，'+holiday:'')+'，'+items.length+'筆登記');cell.setAttribute('aria-pressed',String(date===selectedDate));
     if(date===localDate)cell.setAttribute('aria-current','date');
     const number=document.createElement('span');number.className='day-number';number.textContent=day;cell.append(number);
+    if(holiday){cell.title=holiday;const label=document.createElement('span');label.className='holiday-label';label.textContent=holiday;cell.append(label);}
     items.slice(0,2).forEach(r=>{const event=document.createElement('span');event.className='calendar-event room-'+rooms.indexOf(r.room);event.textContent=r.start+' '+r.room+' · '+r.purpose;cell.append(event);});
     if(items.length>2){const more=document.createElement('span');more.className='calendar-more';more.textContent='另 '+(items.length-2)+' 筆';cell.append(more);}
     cell.onclick=()=>{selectedDate=date;render();const refreshed=Array.from(grid.children).find(b=>b.getAttribute('aria-pressed')==='true');refreshed?.focus();};
