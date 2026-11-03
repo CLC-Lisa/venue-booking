@@ -10,3 +10,7 @@ header,main{max-width:1320px}.columns{grid-template-columns:minmax(280px,1fr) mi
 .holiday-label{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;color:#b42330;font-size:11px;line-height:1.4;margin-top:3px;overflow-wrap:anywhere}
 .calendar-day.holiday{background:#fff8f7}.calendar-day.holiday.active{background:#fff0ed}
 .holiday-note{font-size:12px;line-height:1.6;margin:12px 0;color:#667570}.holiday-note a{color:#52665b}
+
+/* V4 grouped building spaces */
+.building-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin:18px 0 36px}.building{border:1px solid #d6ded4;border-radius:14px;padding:20px;background:#fff;min-width:0}.building-heading{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:16px}.building-heading h3{margin:0;font-size:20px}.building-heading>span{font-size:12px;color:#667570}.building-rooms{display:grid;gap:8px}.building-rooms .space{padding:10px 14px;border-radius:8px;font-size:15px;line-height:1.6;min-height:46px}.building-rooms .space.selected{padding:9px 13px}.building-0{border-top:4px solid #52785e}.building-1{border-top:4px solid #627da8}.building-2{border-top:4px solid #b18a56}.building-color-0{background:#e4ecdf}.building-color-1{background:#e7edf7}.building-color-2{background:#f6e8d7}
+@media(max-width:750px){.building-grid{grid-template-columns:1fr}.building-rooms{grid-template-columns:repeat(2,minmax(0,1fr))}.building{padding:16px}.building-rooms .space{overflow-wrap:anywhere}}
