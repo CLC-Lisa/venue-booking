@@ -137,7 +137,48 @@ function appendContact(card, record) {
   ].filter(Boolean).join(' · ');
   card.append(details);
 }
-function render(){renderCalendar();const list=$('records');list.replaceChildren();if(!records.some(r=>r.date===selectedDate)){const p=document.createElement('p');p.className='muted';p.textContent='這一天沒有示範登記。';list.append(p);return;}records.filter(r=>r.date===selectedDate).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start)).forEach(r=>{const card=document.createElement('div');card.className='record';const title=document.createElement('strong');title.textContent=roomLabel(r.room)+' · '+r.purpose;const time=document.createElement('p');time.textContent=r.date+' / '+r.start+'–'+r.end;const remove=document.createElement('button');remove.className='textbutton';remove.textContent='刪除此筆示範';remove.setAttribute('aria-label','刪除 '+r.purpose);remove.onclick=()=>{if(save(records.filter(x=>x.id!==r.id)))$('message').textContent='已刪除示範登記。';};card.append(title,time);appendContact(card,r);card.append(remove);list.append(card);});}
+function renderMonthlyRecords() {
+  const list = $('monthly-records');
+  if (!list) return;
+  const year = visibleMonth.getFullYear();
+  const month = visibleMonth.getMonth();
+  const prefix = dateKey(year, month, 1).slice(0, 7) + '-';
+  $('monthly-title').textContent = year + '年 ' + (month + 1) + '月場地明細';
+  list.replaceChildren();
+
+  const monthRecords = records.filter(record => record.date.startsWith(prefix))
+    .sort((a, b) => (a.date + a.start + a.end).localeCompare(b.date + b.start + b.end));
+  if (!monthRecords.length) {
+    const empty = document.createElement('p');
+    empty.className = 'muted';
+    empty.textContent = '這個月沒有示範登記。';
+    list.append(empty);
+    return;
+  }
+
+  for (const building of buildings) {
+    const section = document.createElement('section');
+    for (const room of building.rooms) {
+      const roomRecords = monthRecords.filter(record => record.room === room);
+      if (!roomRecords.length) continue;
+      const heading = document.createElement('h4');
+      heading.textContent = room;
+      const entries = document.createElement('ul');
+      for (const record of roomRecords) {
+        const entry = document.createElement('li');
+        entry.textContent = record.date + ' / ' + record.start + '–' + record.end + ' · ' + record.purpose
+          + (record.registrant ? ' · 登記人：' + record.registrant : '');
+        entries.append(entry);
+      }
+      section.append(heading, entries);
+    }
+    if (!section.children.length) continue;
+    const heading = document.createElement('h3');
+    heading.textContent = building.name;
+    list.append(heading, section);
+  }
+}
+function render(){renderCalendar();renderMonthlyRecords();const list=$('records');list.replaceChildren();if(!records.some(r=>r.date===selectedDate)){const p=document.createElement('p');p.className='muted';p.textContent='這一天沒有示範登記。';list.append(p);return;}records.filter(r=>r.date===selectedDate).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start)).forEach(r=>{const card=document.createElement('div');card.className='record';const title=document.createElement('strong');title.textContent=roomLabel(r.room)+' · '+r.purpose;const time=document.createElement('p');time.textContent=r.date+' / '+r.start+'–'+r.end;const remove=document.createElement('button');remove.className='textbutton';remove.textContent='刪除此筆示範';remove.setAttribute('aria-label','刪除 '+r.purpose);remove.onclick=()=>{if(save(records.filter(x=>x.id!==r.id)))$('message').textContent='已刪除示範登記。';};card.append(title,time);appendContact(card,r);card.append(remove);list.append(card);});}
 $('booking').addEventListener('submit',e=>{e.preventDefault();const room=$('room').value,date=$('date').value,start=$('start').value,end=$('end').value,purpose=$('purpose').value.trim();if(!rooms.includes(room)||!purpose||date<localDate||start>=end){$('message').textContent='請填寫活動名稱，並確認日期及結束時間晚於開始時間（限當日使用）。';return;}const registrantField = $('registrant');
 const contactField = $('contact');
 const registrant = registrantField?.value.trim() || '';
