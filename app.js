@@ -128,6 +128,32 @@ function moveMonth(delta){visibleMonth=new Date(visibleMonth.getFullYear(),visib
 $('prev-month').onclick=()=>moveMonth(-1);
 $('next-month').onclick=()=>moveMonth(1);
 $('this-month').onclick=()=>{visibleMonth=new Date(today.getFullYear(),today.getMonth(),1);selectedDate=localDate;render();};
-function render(){renderCalendar();const list=$('records');list.replaceChildren();if(!records.some(r=>r.date===selectedDate)){const p=document.createElement('p');p.className='muted';p.textContent='這一天沒有示範登記。';list.append(p);return;}records.filter(r=>r.date===selectedDate).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start)).forEach(r=>{const card=document.createElement('div');card.className='record';const title=document.createElement('strong');title.textContent=roomLabel(r.room)+' · '+r.purpose;const time=document.createElement('p');time.textContent=r.date+' / '+r.start+'–'+r.end;const remove=document.createElement('button');remove.className='textbutton';remove.textContent='刪除此筆示範';remove.setAttribute('aria-label','刪除 '+r.purpose);remove.onclick=()=>{if(save(records.filter(x=>x.id!==r.id)))$('message').textContent='已刪除示範登記。';};card.append(title,time,remove);list.append(card);});}
-$('booking').addEventListener('submit',e=>{e.preventDefault();const room=$('room').value,date=$('date').value,start=$('start').value,end=$('end').value,purpose=$('purpose').value.trim();if(!rooms.includes(room)||!purpose||date<localDate||start>=end){$('message').textContent='請填寫活動名稱，並確認日期及結束時間晚於開始時間（限當日使用）。';return;}if(records.some(r=>r.room===room&&r.date===date&&start<r.end&&end>r.start)){$('message').textContent='此瀏覽器已有相同場地的重疊時段，請調整時間。';return;}selectedDate=date;const [viewYear,viewMonth]=date.split('-').map(Number);visibleMonth=new Date(viewYear,viewMonth-1,1);if(save([...records,{id:crypto.randomUUID(),room,date,start,end,purpose}])){$('message').textContent='已儲存本機示範，尚未送出正式預約。';$('purpose').value='';}});
+function appendContact(card, record) {
+  if (!record.registrant && !record.contact) return;
+  const details = document.createElement('p');
+  details.textContent = [
+    record.registrant && '登記人：' + record.registrant,
+    record.contact && '聯絡方式：' + record.contact
+  ].filter(Boolean).join(' · ');
+  card.append(details);
+}
+function render(){renderCalendar();const list=$('records');list.replaceChildren();if(!records.some(r=>r.date===selectedDate)){const p=document.createElement('p');p.className='muted';p.textContent='這一天沒有示範登記。';list.append(p);return;}records.filter(r=>r.date===selectedDate).sort((a,b)=>(a.date+a.start).localeCompare(b.date+b.start)).forEach(r=>{const card=document.createElement('div');card.className='record';const title=document.createElement('strong');title.textContent=roomLabel(r.room)+' · '+r.purpose;const time=document.createElement('p');time.textContent=r.date+' / '+r.start+'–'+r.end;const remove=document.createElement('button');remove.className='textbutton';remove.textContent='刪除此筆示範';remove.setAttribute('aria-label','刪除 '+r.purpose);remove.onclick=()=>{if(save(records.filter(x=>x.id!==r.id)))$('message').textContent='已刪除示範登記。';};card.append(title,time);appendContact(card,r);card.append(remove);list.append(card);});}
+$('booking').addEventListener('submit',e=>{e.preventDefault();const room=$('room').value,date=$('date').value,start=$('start').value,end=$('end').value,purpose=$('purpose').value.trim();if(!rooms.includes(room)||!purpose||date<localDate||start>=end){$('message').textContent='請填寫活動名稱，並確認日期及結束時間晚於開始時間（限當日使用）。';return;}const registrantField = $('registrant');
+const contactField = $('contact');
+const registrant = registrantField?.value.trim() || '';
+const contact = contactField?.value.trim() || '';
+if (registrantField && (!registrant || !contact)) {
+  $('message').textContent = '請填寫登記人及聯絡電話或電子信箱。';
+  (registrant ? contactField : registrantField).focus();
+  return;
+}
+const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const phonePattern = /^\+?[\d\s().-]+(?:\s*(?:#|分機|ext\.?)\s*\d+)?$/i;
+if (contactField && !emailPattern.test(contact) &&
+    !(phonePattern.test(contact) && contact.replace(/\D/g, '').length >= 7)) {
+  $('message').textContent = '請輸入有效的聯絡電話或電子信箱。';
+  contactField.focus();
+  return;
+}
+if(records.some(r=>r.room===room&&r.date===date&&start<r.end&&end>r.start)){$('message').textContent='此瀏覽器已有相同場地的重疊時段，請調整時間。';return;}selectedDate=date;const [viewYear,viewMonth]=date.split('-').map(Number);visibleMonth=new Date(viewYear,viewMonth-1,1);if(save([...records,{id:crypto.randomUUID(),room,date,start,end,purpose,registrant,contact}])){$('message').textContent='已儲存本機示範，尚未送出正式預約。';$('purpose').value='';}});
 $('clear').onclick=()=>{if(records.length&&confirm('確定清除這個瀏覽器的全部示範紀錄？'))if(save([]))$('message').textContent='已清除全部示範紀錄。';};render();
